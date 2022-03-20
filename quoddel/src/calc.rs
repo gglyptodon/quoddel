@@ -1,10 +1,50 @@
 use crate::QuoddelResult;
-use seq_io::fasta::{Reader};
+use seq_io::fasta::Reader;
+
+#[derive(Debug)]
+pub struct NLStats {
+    pub n50: usize,
+    pub n90: usize,
+    pub l50: usize,
+    pub l90: usize,
+}
+pub fn calc_stats(lengths: &[usize]) -> NLStats {
+    let fifty: f32 = (lengths.iter().map(|&x| x as f32).sum::<f32>()) * 0.5;
+    let ninety: f32 = (lengths.iter().map(|&x| x as f32).sum::<f32>()) * 0.9;
+    let mut tmp = lengths.to_owned();
+    tmp.sort_by(|a, b| b.cmp(a));
+    let mut n90sum: usize = 0;
+    let mut n50sum: usize = 0;
+    let mut current_50: usize = 0;
+    let mut current_90: usize = 0;
+    let mut count_50: usize = 0;
+    let mut count_90: usize = 0;
+    for decreasing in tmp {
+        if n90sum >= ninety as usize {
+            break;
+        }
+        if n50sum < fifty as usize {
+            //todo test on edge case
+            n50sum += decreasing;
+            current_50 = decreasing;
+            count_50 += 1;
+        }
+        n90sum += decreasing;
+        current_90 = decreasing;
+        count_90 += 1;
+    }
+    NLStats {
+        n50: current_50,
+        n90: current_90,
+        l50: count_50,
+        l90: count_90,
+    }
+}
 
 pub fn n90(lengths: &Vec<usize>) -> usize {
     //todo de-uglify
     let ninety: f32 = (lengths.iter().map(|&x| x as f32).sum::<f32>()) * 0.9;
-    let mut tmp = lengths.to_owned();//clone();
+    let mut tmp = lengths.to_owned(); //clone();
     tmp.sort_by(|a, b| b.cmp(a));
     let mut n90sum: usize = 0;
     let mut current: usize = 0;
@@ -23,12 +63,11 @@ pub fn n50(lengths: &Vec<usize>) -> usize {
     //todo oof ugly ey
     //longest to shortest
     let half: f32 = (lengths.iter().map(|&x| x as f32).sum::<f32>()) * 0.5;
-    let mut tmp = lengths.to_owned();//.clone();
+    let mut tmp = lengths.to_owned(); //.clone();
     tmp.sort_by(|a, b| b.cmp(a));
     let mut n50sum: usize = 0;
     let mut current: usize = 0;
     for decreasing in tmp {
-        //println!("decreasing: {}", decreasing);
         if n50sum >= half as usize {
             //todo...
             break;
@@ -46,7 +85,7 @@ pub fn get_gc_num(seq: &Vec<u8>) -> usize {
 }
 pub fn get_at_num(seq: &Vec<u8>) -> usize {
     seq.iter()
-        .filter(|&&c| c == b'A'|| c == b'T' || c == b'a'|| c == b't')
+        .filter(|&&c| c == b'A' || c == b'T' || c == b'a' || c == b't')
         .count()
 }
 
@@ -60,41 +99,10 @@ pub fn calc_gc(file: &str, length_cutoff: usize) -> QuoddelResult<f32> {
         .filter(|x| x.len() >= length_cutoff)
         .collect();
     let gcnum = filtered.iter().map(get_gc_num).sum::<usize>();
-    //.map(|x| get_gc_num(x.unwrap().seq))
-    //.sum();
-    //println!("gcnum: {}", gcnum);
     let atnum = filtered.iter().map(get_at_num).sum::<usize>();
-    //.map(|x| get_gc_num(x.unwrap().seq))
-    //.sum();
-    //println!("atnum: {}", atnum);
-
-    // let atnum: usize = reader_at
-    //     .records()
-    //.filter(|x| x.unwrap().seq.len() >= length_cutoff)
-    //     .map(|x| get_at_num(x.unwrap().seq))
-    //     .sum();
-    // println!("atnum: {}", atnum);
 
     Ok(gcnum as f32 / (atnum + gcnum) as f32)
 }
-
-/*pub fn gc_total(file: &str) ->QuoddelResult<(u64,u64)>{ //todo min length cutoff needs to be regarded
-    let mut reader = Reader::from_path(file)?;
-    let mut reader_at = Reader::from_path(file)?;
-    let gc_num =reader.records().map(|x| x.unwrap()
-        .seq.iter()
-        .filter(|&&c| c =='C' as u8 ||c=='G' as u8 ||c=='g' as u8 ||c=='c' as u8 ).map(|&x|x as u64).sum::<u64>()//todo
-    ).sum::<u64>();
-    let at_num = reader_at.records().map(|x| x.unwrap()
-        .seq.iter()
-        .filter(|&&c| c =='A' as u8 ||c=='T' as u8 ||c=='a' as u8 ||c=='t' as u8 ).map(|&x|x as u64).sum::<u64>()//todo
-    ).sum::<u64>();
-    // {
-        //println!("{}",x);
-    //}
-    Ok((gc_num,at_num))
-}
-*/
 
 #[cfg(test)]
 mod tests {

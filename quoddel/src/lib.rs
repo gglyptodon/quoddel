@@ -2,9 +2,10 @@ pub mod calc;
 pub mod output;
 
 use std::error::Error;
-use std::io::BufRead;
+use std::io;
+use std::io::{BufRead, Read};
 
-use seq_io::fasta::{Reader};
+use seq_io::fasta::{Reader, Record};
 
 use clap::{Arg, Command};
 
@@ -41,20 +42,19 @@ pub struct FastaInfo {
     n50_ge_cutoff: usize,
     n90_ge_cutoff: usize,
     //auN: f64, ?
-    //l50: usize,
-    //l90: usize,
+    l50: usize,
+    l90: usize,
     //num_n_per_100_kbp: f64,
     total_length_ge_cutoff: usize,
 }
 
 pub fn get_args() -> QuoddelResult<Config> {
     let matches = Command::new("quoddel")
-        .about("Shows some stats for fasta files")
+        .about("Shows some stats for fasta files. Default minimum contig length is 500bp.")
         .arg(
             Arg::new("files")
                 .allow_invalid_utf8(true)
-                //.default_value("-") //todo
-                .required(true)
+                .default_value("-") //todo
                 .min_values(1)
                 .help("fasta files (contigs)"),
         ).arg(
@@ -64,7 +64,6 @@ pub fn get_args() -> QuoddelResult<Config> {
             .default_value("500")
     )
         .get_matches();
-    // add min contig length to be comparable to quast default 500 -m, --min-contig
     let files = matches.values_of_lossy("files").unwrap();
     let min_contig_length = matches.value_of("min_contig_length").unwrap().parse()?;
     Ok(Config {
@@ -78,14 +77,18 @@ pub fn run(config: Config) -> QuoddelResult<()> {
     for file in config.files {
         println!(
             "{:#?}",
-            read_fasta_sequences(&file, config.min_contig_length)?
+            if file == "-" {
+                //stdin
+                read_fasta_sequences_stdin(config.min_contig_length)?
+            } else {
+                read_fasta_sequences_file(&file, config.min_contig_length)?
+            }
         );
     }
     Ok(())
 }
-
-pub fn read_fasta_sequences(file: &str, min_contig_length: usize) -> QuoddelResult<FastaInfo> {
-    //todo refactor
+pub fn read_fasta_sequences_file(file: &str, min_contig_length: usize) -> QuoddelResult<FastaInfo> {
+    let mut reader = Reader::from_path(file)?;
     let mut info = FastaInfo {
         num_contigs_gr0: 0,
         num_contigs_gr1000: 0,
@@ -99,121 +102,77 @@ pub fn read_fasta_sequences(file: &str, min_contig_length: usize) -> QuoddelResu
         total_length_gr10000: 0,
         total_length_gr25000: 0,
         total_length_gr50000: 0,
-
         num_contigs_ge_cutoff: 0,
         largest_contig_ge_cutoff: 0,
         gc_percent_ge_cutoff: 0.0,
         n50_ge_cutoff: 0,
         n90_ge_cutoff: 0,
+        l50: 0,
+        l90: 0,
         total_length_ge_cutoff: 0,
     };
-    // let mut num_seqs:usize = 0;
-    let mut reader = Reader::from_path(file)?;
-    let mut reader_largest_contig = Reader::from_path(file)?;
-    let mut reader_n50 = Reader::from_path(file)?;
+    let mut largest_contig_ge_cutoff: usize = 0;
+    let mut seq_lengths: Vec<usize> = Vec::new();
+    let mut seq_gc: Vec<usize> = Vec::new();
+    let mut seq_at: Vec<usize> = Vec::new();
 
-    let mut gr0: usize = 0;
-    let mut gr1000: usize = 0;
-    let mut gr5000: usize = 0;
-    let mut gr10000: usize = 0;
-    let mut gr25000: usize = 0;
-    let mut gr50000: usize = 0;
+    while let Some(result) = reader.next() {
+        let record = result?;
+        let seqlen = record.seq_lines().fold(0, |l, seq| l + seq.len());
+        info.num_contigs_gr0 += 1;
+        info.total_length_gr0 += seqlen;
+        if seqlen >= min_contig_length {
+            let seqgc = get_gc_num(&record.owned_seq());
+            seq_gc.push(seqgc);
+            let seqat = get_at_num(&record.owned_seq());
+            seq_at.push(seqat);
 
-    let mut tlen0: usize = 0;
-    let mut tlen1000: usize = 0;
-    let mut tlen5000: usize = 0;
-    let mut tlen10000: usize = 0;
-    let mut tlen25000: usize = 0;
-    let mut tlen50000: usize = 0;
-
-    let mut count_ge_cutoff = 0;
-    for x in reader.records().map(|x| x.unwrap().seq.len()) {
-        if x >= min_contig_length {
-            count_ge_cutoff += 1;
-        }
-        match x {
-            //0 => {}
-            0..=999 => {
-                gr0 += 1;
-                tlen0 += x
+            seq_lengths.push(seqlen);
+            info.num_contigs_ge_cutoff += 1;
+            info.total_length_ge_cutoff += seqlen;
+            //todo count for all categories
+            if seqlen >= 1000 {
+                info.num_contigs_gr1000 += 1;
+                info.total_length_gr1000 += seqlen;
             }
-            1000..=4999 => {
-                gr1000 += 1;
-                tlen1000 += x
+            if seqlen >= 5000 {
+                info.num_contigs_gr5000 += 1;
+                info.total_length_gr5000 += seqlen;
             }
-            5000..=9999 => {
-                gr5000 += 1;
-                tlen5000 += x
+            if seqlen >= 10000 {
+                info.num_contigs_gr10000 += 1;
+                info.total_length_gr10000 = seqlen;
             }
-            10000..=24999 => {
-                gr10000 += 1;
-                tlen10000 += x
+            if seqlen >= 25000 {
+                info.num_contigs_gr25000 += 1;
+                info.total_length_gr25000 += seqlen
             }
-            25000..=49999 => {
-                gr25000 += 1;
-                tlen25000 += x
+            if seqlen >= 50000 {
+                info.num_contigs_gr50000 += 1;
+                info.total_length_gr50000 += seqlen;
             }
-            _ => {
-                gr50000 += 1;
-                tlen50000 += x
+            // largest
+            if seqlen > largest_contig_ge_cutoff {
+                largest_contig_ge_cutoff = seqlen;
             }
         }
-        //println!("{}",x);
     }
-    // num_seqs= reader.records().count();
-    //while let Some(_record) = reader.next() {
-    //let record = record?;
-    //.expect("Error reading record");
-    //     num_seqs+=1;
-    //println!("{}", record.id().unwrap());
-    //
-    // }
-    info.num_contigs_gr0 = [gr50000, gr25000, gr10000, gr5000, gr1000, gr0]
-        .iter()
-        .sum();
-    info.num_contigs_gr1000 = [gr50000, gr25000, gr10000, gr5000, gr1000].iter().sum();
-    info.num_contigs_gr5000 = [gr50000, gr25000, gr10000, gr5000].iter().sum();
-    info.num_contigs_gr10000 = [gr50000, gr25000, gr10000].iter().sum();
-    info.num_contigs_gr25000 = [gr50000, gr25000].iter().sum();
-    info.num_contigs_gr50000 = gr50000;
 
-    info.total_length_ge_cutoff = [tlen50000, tlen25000, tlen10000, tlen5000, tlen1000, tlen0]
-        .iter()
-        .sum();
+    let nl_stats = calc_stats(&seq_lengths);
+    info.n50_ge_cutoff = nl_stats.n50;
+    info.l50 = nl_stats.l50;
+    info.n90_ge_cutoff = nl_stats.n90;
+    info.l90 = nl_stats.l90;
+    info.largest_contig_ge_cutoff = largest_contig_ge_cutoff;
 
-    info.total_length_gr0 = info.total_length_ge_cutoff;
-    info.total_length_gr1000 = info.total_length_ge_cutoff - tlen0;
-    info.total_length_gr5000 = info.total_length_gr1000 - tlen1000;
-    info.total_length_gr10000 = info.total_length_gr5000 - tlen5000;
-    info.total_length_gr25000 = info.total_length_gr10000 - tlen10000;
-    info.total_length_gr50000 = info.total_length_gr25000 - tlen25000;
+    let gcsum: usize = seq_gc.iter().sum(); //todo clean up
+    info.gc_percent_ge_cutoff = gcsum as f32 / (seq_at.iter().sum::<usize>() + gcsum) as f32;
 
-    info.num_contigs_ge_cutoff = count_ge_cutoff; //todo
-
-    if let Some(largest) = reader_largest_contig
-        .records()
-        .map(|x| x.unwrap().seq.len())
-        .max()
-    {
-        info.largest_contig_ge_cutoff = largest;
-    }
-    let lengths: Vec<usize> = reader_n50
-        .records()
-        .map(|x| x.unwrap().seq.len())
-        .filter(|&y| y >= min_contig_length)
-        .collect();
-    info.total_length_ge_cutoff = lengths.iter().sum(); //todo refactor
-    info.n50_ge_cutoff = n50(&lengths);
-    info.n90_ge_cutoff = n90(&lengths);
-
-    // let tmp = calc::gc_total(file)?;//TODO!
-    //  println!("gc total num: {}, at: {}", tmp.0, tmp.1);
-    info.gc_percent_ge_cutoff = calc_gc(file, min_contig_length)?; //tmp.0 as f32 /(tmp.1+tmp.0) as f32; //todo in quast this if for contigs : > cutoff only!
     Ok(info)
 }
 
-pub fn get_info(mut buff: impl BufRead) -> QuoddelResult<FastaInfo> {
-    let info = FastaInfo {
+pub fn read_fasta_sequences_stdin(min_contig_len: usize) -> QuoddelResult<FastaInfo> {
+    let mut info = FastaInfo {
         num_contigs_gr0: 0,
         num_contigs_gr1000: 0,
         num_contigs_gr5000: 0,
@@ -231,29 +190,67 @@ pub fn get_info(mut buff: impl BufRead) -> QuoddelResult<FastaInfo> {
         gc_percent_ge_cutoff: 0.0,
         n50_ge_cutoff: 0,
         n90_ge_cutoff: 0,
+        l50: 0,
+        l90: 0,
         total_length_ge_cutoff: 0,
     };
+    let mut reader = Reader::new(io::stdin());
+    let mut largest_contig_ge_cutoff: usize = 0;
+    let mut seq_lengths: Vec<usize> = Vec::new();
+    let mut seq_gc: Vec<usize> = Vec::new();
+    let mut seq_at: Vec<usize> = Vec::new();
 
-    let mut res_buff = String::new();
-    loop {
-        let num_bytes_read = buff.read_line(&mut res_buff)?;
-        if num_bytes_read == 0 {
-            break;
+    while let Some(result) = reader.next() {
+        let record = result?;
+        let seqlen = record.seq_lines().fold(0, |l, seq| l + seq.len());
+        info.num_contigs_gr0 += 1;
+        info.total_length_gr0 += seqlen;
+        if seqlen >= min_contig_len {
+            let seqgc = get_gc_num(&record.owned_seq());
+            seq_gc.push(seqgc);
+            let seqat = get_at_num(&record.owned_seq());
+            seq_at.push(seqat);
+
+            seq_lengths.push(seqlen);
+            info.num_contigs_ge_cutoff += 1;
+            info.total_length_ge_cutoff += seqlen;
+            //todo count for all categories
+            if seqlen >= 1000 {
+                info.num_contigs_gr1000 += 1;
+                info.total_length_gr1000 += seqlen;
+            }
+            if seqlen >= 5000 {
+                info.num_contigs_gr5000 += 1;
+                info.total_length_gr5000 += seqlen;
+            }
+            if seqlen >= 10000 {
+                info.num_contigs_gr10000 += 1;
+                info.total_length_gr10000 = seqlen;
+            }
+            if seqlen >= 25000 {
+                info.num_contigs_gr25000 += 1;
+                info.total_length_gr25000 += seqlen
+            }
+            if seqlen >= 50000 {
+                info.num_contigs_gr50000 += 1;
+                info.total_length_gr50000 += seqlen;
+            }
+            // largest
+            if seqlen > largest_contig_ge_cutoff {
+                largest_contig_ge_cutoff = seqlen;
+            }
         }
-        // num_lines += 1;
-        //num_bytes += num_bytes_read;
-        //num_chars += res_buff.chars().count();
-        //num_words += res_buff.split_ascii_whitespace().count();
-        res_buff.clear();
     }
+
+    let nl_stats = calc_stats(&seq_lengths);
+    info.n50_ge_cutoff = nl_stats.n50;
+    info.l50 = nl_stats.l50;
+    info.n90_ge_cutoff = nl_stats.n90;
+    info.l90 = nl_stats.l90;
+    info.largest_contig_ge_cutoff = largest_contig_ge_cutoff;
+
+    let gcsum: usize = seq_gc.iter().sum(); //todo clean up
+    info.gc_percent_ge_cutoff = gcsum as f32 / (seq_at.iter().sum::<usize>() + gcsum) as f32;
+
     Ok(info)
 }
-/*
-pub fn read_gz(mut buff: impl BufRead) -> QuoddelResult<()> {
-    let mut d = GzDecoder::new(buff);
-    let mut s = [08; 10];
-    let read = d.read(&mut s)?;
-    println!("{:?}", s);
-    Ok(())
-}
-*/
