@@ -225,7 +225,7 @@ pub fn read_fasta_sequences_stdin(min_contig_len: usize) -> QuoddelResult<FastaI
             }
             if seqlen >= 10000 {
                 info.num_contigs_gr10000 += 1;
-                info.total_length_gr10000 = seqlen;
+                info.total_length_gr10000 += seqlen;
             }
             if seqlen >= 25000 {
                 info.num_contigs_gr25000 += 1;
