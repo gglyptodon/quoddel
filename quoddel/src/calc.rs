@@ -1,5 +1,35 @@
 use crate::QuoddelResult;
 use seq_io::fasta::Reader;
+use std::ops::Add;
+
+#[derive(Default, Debug)]
+pub struct FastaInfo {
+    pub(crate) num_contigs_gr0: usize,
+    pub(crate) num_contigs_gr1000: usize,
+    pub(crate) num_contigs_gr5000: usize,
+    pub(crate) num_contigs_gr10000: usize,
+    pub(crate) num_contigs_gr25000: usize,
+    pub(crate) num_contigs_gr50000: usize,
+
+    pub(crate) total_length_gr0: usize,
+    pub(crate) total_length_gr1000: usize,
+    pub(crate) total_length_gr5000: usize,
+    pub(crate) total_length_gr10000: usize,
+    pub(crate) total_length_gr25000: usize,
+    pub(crate) total_length_gr50000: usize,
+
+    pub(crate) num_contigs_ge_cutoff: usize,
+
+    pub(crate) largest_contig_ge_cutoff: usize,
+    pub(crate) gc_percent_ge_cutoff: f32,
+    pub(crate) n50_ge_cutoff: usize,
+    pub(crate) n90_ge_cutoff: usize,
+    //auN: f32, ?
+    pub(crate) l50: usize,
+    pub(crate) l90: usize,
+    pub(crate) num_n_per_100_kbp: f32,
+    pub(crate) total_length_ge_cutoff: usize,
+}
 
 #[derive(Debug)]
 pub struct NLStats {
@@ -89,6 +119,62 @@ pub fn get_at_num(seq: &Vec<u8>) -> usize {
         .count()
 }
 
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct NucCount {
+    pub(crate) num_a: usize,
+    pub(crate) num_t: usize,
+    pub(crate) num_c: usize,
+    pub(crate) num_g: usize,
+    pub(crate) num_n: usize,
+}
+impl Add for NucCount {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self {
+            num_a: self.num_a + other.num_a,
+            num_t: self.num_t + other.num_t,
+            num_g: self.num_g + other.num_g,
+            num_c: self.num_c + other.num_c,
+            num_n: self.num_n + other.num_n,
+        }
+    }
+}
+
+pub fn count_nuc(nuc: &u8) -> NucCount {
+    let mut nuc_count = NucCount {
+        num_a: 0,
+        num_t: 0,
+        num_c: 0,
+        num_g: 0,
+        num_n: 0,
+    };
+    match nuc {
+        b'A' | b'a' => nuc_count.num_a += 1,
+        b'T' | b't' => nuc_count.num_t += 1,
+        b'G' | b'g' => nuc_count.num_g += 1,
+        b'C' | b'c' => nuc_count.num_c += 1,
+        b'N' | b'n' => nuc_count.num_n += 1,
+        _ => {}
+    }
+    nuc_count
+}
+pub fn get_atgcn_num(seq: &Vec<u8>) -> NucCount {
+    seq.iter()
+        //.filter(|&&c| c in &[b'a',b'A',b't',b'T', b'g',b'G',b'c',b'C', b'N', b'n'])
+        .map(count_nuc)
+        .fold(
+            NucCount {
+                num_a: 0,
+                num_t: 0,
+                num_c: 0,
+                num_g: 0,
+                num_n: 0,
+            },
+            |count, new| count + new,
+        )
+}
+
 pub fn calc_gc(file: &str, length_cutoff: usize) -> QuoddelResult<f32> {
     let mut reader_gc = Reader::from_path(file)?;
     //let mut reader_at = Reader::from_path(file)?;
@@ -108,10 +194,8 @@ pub fn calc_gc(file: &str, length_cutoff: usize) -> QuoddelResult<f32> {
 mod tests {
     use crate::{
         calc::{n50, n90},
-        get_at_num, get_gc_num, FastaInfo,
+        get_at_num, get_atgcn_num, get_gc_num, FastaInfo, NucCount,
     };
-    use std::io::Cursor;
-    //use std::io::Cursor;
 
     #[test]
     fn test_n50_odd() {
@@ -239,6 +323,7 @@ mod tests {
             assert_eq!(get_gc_num(&seq), expected);
         }
     }
+    #[test]
     fn test_gc_no_minlength_mc() {
         let seqs = ["atggGgggggggtt", "atg", "atGGGggggcCgggttatg", "tt"]
             .iter()
@@ -249,6 +334,7 @@ mod tests {
             assert_eq!(get_gc_num(&seq), expected);
         }
     }
+    #[test]
     fn test_gc_minlength_3_mc() {
         let seqs = ["atggGgggggggtt", "atg", "atGGGggggcCgggttatg", "tt"]
             .iter()
@@ -258,5 +344,69 @@ mod tests {
         for (seq, expected) in seqs.iter().zip(expected) {
             assert_eq!(get_gc_num(&seq), expected);
         }
+    }
+
+    #[test]
+    fn test_nuc_count() {
+        let seqs = ["atggGggngggggtt", "atg", "antGGGggggcCgggttatgN", "tt"]
+            .iter()
+            .map(|x| x.chars().map(|y| y as u8).collect::<Vec<u8>>())
+            .collect::<Vec<Vec<u8>>>();
+        let expected = [
+            NucCount {
+                num_a: 1,
+                num_t: 3,
+                num_c: 0,
+                num_g: 10,
+                num_n: 1,
+            },
+            NucCount {
+                num_a: 1,
+                num_t: 1,
+                num_c: 0,
+                num_g: 1,
+                num_n: 0,
+            },
+            NucCount {
+                num_a: 2,
+                num_t: 4,
+                num_c: 2,
+                num_g: 11,
+                num_n: 2,
+            },
+            NucCount {
+                num_a: 0,
+                num_t: 2,
+                num_c: 0,
+                num_g: 0,
+                num_n: 0,
+            },
+        ];
+        let mut res: Vec<NucCount> = Vec::new();
+        let expected_total: NucCount = NucCount {
+            num_a: 4,
+            num_t: 10,
+            num_g: 22,
+            num_c: 2,
+            num_n: 3,
+        };
+        for (s, ex) in seqs.iter().zip(expected) {
+            let count = get_atgcn_num(&s);
+            res.push(count);
+            assert_eq!(count, ex)
+        }
+        assert_eq!(
+            res.iter().fold(
+                NucCount {
+                    num_a: 0,
+                    num_t: 0,
+                    num_c: 0,
+                    num_g: 0,
+                    num_n: 0,
+                },
+                |count, &new| count + new,
+            ),
+            expected_total
+        )
     }
 }

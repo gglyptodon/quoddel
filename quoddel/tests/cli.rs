@@ -25,15 +25,15 @@ fn gen_bad_file() -> String {
 }
 
 // --------------------------------------------------
-fn run(args: &[&str], expected_file: &str) -> TestResult {
-    let expected = fs::read_to_string(expected_file)?;
-    Command::cargo_bin(PRG)?
-        .args(args)
-        .assert()
-        .success()
-        .stdout(expected);
-    Ok(())
-}
+//fn run(args: &[&str], expected_file: &str) -> TestResult {
+//    let expected = fs::read_to_string(expected_file)?;
+//    Command::cargo_bin(PRG)?
+//        .args(args)
+//        .assert()
+//        .success()
+//       .stdout(expected);
+//   Ok(())
+//}
 
 #[test]
 fn skips_bad_file() -> TestResult {
@@ -194,3 +194,4 @@ fn fasta1_gc_m2_stdin() -> TestResult {
         );
     Ok(())
 }
+//todo test n per 100k bp
