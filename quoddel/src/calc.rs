@@ -2,35 +2,6 @@ use crate::QuoddelResult;
 use seq_io::fasta::Reader;
 use std::ops::Add;
 
-#[derive(Default, Debug)]
-pub struct FastaInfo {
-    pub(crate) num_contigs_gr0: usize,
-    pub(crate) num_contigs_gr1000: usize,
-    pub(crate) num_contigs_gr5000: usize,
-    pub(crate) num_contigs_gr10000: usize,
-    pub(crate) num_contigs_gr25000: usize,
-    pub(crate) num_contigs_gr50000: usize,
-
-    pub(crate) total_length_gr0: usize,
-    pub(crate) total_length_gr1000: usize,
-    pub(crate) total_length_gr5000: usize,
-    pub(crate) total_length_gr10000: usize,
-    pub(crate) total_length_gr25000: usize,
-    pub(crate) total_length_gr50000: usize,
-
-    pub(crate) num_contigs_ge_cutoff: usize,
-
-    pub(crate) largest_contig_ge_cutoff: usize,
-    pub(crate) gc_percent_ge_cutoff: f32,
-    pub(crate) n50_ge_cutoff: usize,
-    pub(crate) n90_ge_cutoff: usize,
-    //auN: f32, ?
-    pub(crate) l50: usize,
-    pub(crate) l90: usize,
-    pub(crate) num_n_per_100_kbp: f32,
-    pub(crate) total_length_ge_cutoff: usize,
-}
-
 #[derive(Debug)]
 pub struct NLStats {
     pub n50: usize,

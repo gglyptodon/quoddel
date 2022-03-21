@@ -24,17 +24,6 @@ fn gen_bad_file() -> String {
     }
 }
 
-// --------------------------------------------------
-//fn run(args: &[&str], expected_file: &str) -> TestResult {
-//    let expected = fs::read_to_string(expected_file)?;
-//    Command::cargo_bin(PRG)?
-//        .args(args)
-//        .assert()
-//        .success()
-//       .stdout(expected);
-//   Ok(())
-//}
-
 #[test]
 fn skips_bad_file() -> TestResult {
     let bad = gen_bad_file();
@@ -54,14 +43,15 @@ fn fasta1_gc() -> TestResult {
         .arg(FA1)
         .arg("-m")
         .arg("10")
+        .arg("--debug")
         .assert()
         .success()
         .stdout(
             predicate::str::contains("min_contig_length: 10")
-                .and(predicate::str::contains("num_contigs_gr0: 4"))
+                .and(predicate::str::contains("num_contigs_ge0: 4"))
                 .and(predicate::str::contains("num_contigs_ge_cutoff: 2"))
                 .and(predicate::str::contains("total_length_ge_cutoff: 84"))
-                .and(predicate::str::contains("total_length_gr0: 90")) //todo greater equal..
+                .and(predicate::str::contains("total_length_ge0: 90")) //todo greater equal..
                 .and(predicate::str::contains("gc_percent_ge_cutoff: 0.2857143")),
         );
     Ok(())
@@ -73,14 +63,15 @@ fn fasta1_gc_m0() -> TestResult {
         .arg(FA1)
         .arg("-m")
         .arg("0")
+        .arg("--debug")
         .assert()
         .success()
         .stdout(
             predicate::str::contains("min_contig_length: 0")
-                .and(predicate::str::contains("num_contigs_gr0: 4"))
+                .and(predicate::str::contains("num_contigs_ge0: 4"))
                 .and(predicate::str::contains("num_contigs_ge_cutoff: 4"))
                 .and(predicate::str::contains("total_length_ge_cutoff: 90"))
-                .and(predicate::str::contains("total_length_gr0: 90")) //todo greater equal..
+                .and(predicate::str::contains("total_length_ge0: 90")) //todo greater equal..
                 .and(predicate::str::contains("gc_percent_ge_cutoff: 0.26666668")),
         );
     Ok(())
@@ -93,14 +84,15 @@ fn fasta1_gc_m1() -> TestResult {
         .arg(FA1)
         .arg("-m")
         .arg("1")
+        .arg("--debug")
         .assert()
         .success()
         .stdout(
             predicate::str::contains("min_contig_length: 1")
-                .and(predicate::str::contains("num_contigs_gr0: 4"))
+                .and(predicate::str::contains("num_contigs_ge0: 4"))
                 .and(predicate::str::contains("num_contigs_ge_cutoff: 3"))
                 .and(predicate::str::contains("total_length_ge_cutoff: 90"))
-                .and(predicate::str::contains("total_length_gr0: 90")) //todo greater equal..
+                .and(predicate::str::contains("total_length_ge0: 90")) //todo greater equal..
                 .and(predicate::str::contains("gc_percent_ge_cutoff: 0.26666668")),
         );
     Ok(())
@@ -113,14 +105,15 @@ fn fasta2_gc_m1_n90_l90_n50_l50() -> TestResult {
         .arg(FA2)
         .arg("-m")
         .arg("1")
+        .arg("--debug")
         .assert()
         .success()
         .stdout(
             predicate::str::contains("min_contig_length: 1")
-                .and(predicate::str::contains("num_contigs_gr0: 7"))
+                .and(predicate::str::contains("num_contigs_ge0: 7"))
                 .and(predicate::str::contains("num_contigs_ge_cutoff: 7"))
                 .and(predicate::str::contains("total_length_ge_cutoff: 525"))
-                .and(predicate::str::contains("total_length_gr0: 525")) //todo greater equal..
+                .and(predicate::str::contains("total_length_ge0: 525")) //todo greater equal..
                 .and(predicate::str::contains("gc_percent_ge_cutoff: 0.422"))
                 .and(predicate::str::contains("n50_ge_cutoff: 70"))
                 .and(predicate::str::contains("l50: 2"))
@@ -139,14 +132,15 @@ pub fn fasta2_gc_m1_n90_l90_n50_l50_stdin() -> TestResult {
         .arg(FA2)
         .arg("-m")
         .arg("1")
+        .arg("--debug")
         .assert()
         .success()
         .stdout(
             predicate::str::contains("min_contig_length: 1")
-                .and(predicate::str::contains("num_contigs_gr0: 7"))
+                .and(predicate::str::contains("num_contigs_ge0: 7"))
                 .and(predicate::str::contains("num_contigs_ge_cutoff: 7"))
                 .and(predicate::str::contains("total_length_ge_cutoff: 525"))
-                .and(predicate::str::contains("total_length_gr0: 525"))
+                .and(predicate::str::contains("total_length_ge0: 525"))
                 .and(predicate::str::contains("gc_percent_ge_cutoff: 0.422"))
                 .and(predicate::str::contains("n50_ge_cutoff: 70"))
                 .and(predicate::str::contains("l50: 2"))
@@ -162,14 +156,15 @@ fn fasta1_gc_m0_stdin() -> TestResult {
         .write_stdin(input)
         .arg("-m")
         .arg("0")
+        .arg("--debug")
         .assert()
         .success()
         .stdout(
             predicate::str::contains("min_contig_length: 0")
-                .and(predicate::str::contains("num_contigs_gr0: 4"))
+                .and(predicate::str::contains("num_contigs_ge0: 4"))
                 .and(predicate::str::contains("num_contigs_ge_cutoff: 4"))
                 .and(predicate::str::contains("total_length_ge_cutoff: 90"))
-                .and(predicate::str::contains("total_length_gr0: 90"))
+                .and(predicate::str::contains("total_length_ge0: 90"))
                 .and(predicate::str::contains("gc_percent_ge_cutoff: 0.26666668")),
         );
     Ok(())
@@ -182,14 +177,15 @@ fn fasta1_gc_m2_stdin() -> TestResult {
         .write_stdin(input)
         .arg("-m")
         .arg("1")
+        .arg("--debug")
         .assert()
         .success()
         .stdout(
             predicate::str::contains("min_contig_length: 1")
-                .and(predicate::str::contains("num_contigs_gr0: 4"))
+                .and(predicate::str::contains("num_contigs_ge0: 4"))
                 .and(predicate::str::contains("num_contigs_ge_cutoff: 3"))
                 .and(predicate::str::contains("total_length_ge_cutoff: 90"))
-                .and(predicate::str::contains("total_length_gr0: 90"))
+                .and(predicate::str::contains("total_length_ge0: 90"))
                 .and(predicate::str::contains("gc_percent_ge_cutoff: 0.26666668")),
         );
     Ok(())
