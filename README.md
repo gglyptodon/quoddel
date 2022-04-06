@@ -1,3 +1,5 @@
+[![Rust](https://github.com/gglyptodon/quoddel/actions/workflows/rust.yml/badge.svg)](https://github.com/gglyptodon/quoddel/actions/workflows/rust.yml)
+
 # quoddel
 
 Display stats about fasta files.
