@@ -3,6 +3,7 @@
 on:
   release:
     types: [created]
+  workflow_dispatch:
 
 jobs:
   quickcheck:
@@ -53,7 +54,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: deb
-          args: --manifest-path quoddel/Cargo.toml --target=x86_64-unknown-linux-gnu -o ./quoddel_${{ needs.quickcheck.outputs.version }}_amd64.deb
+          args: --manifest-path quoddel/Cargo.toml --target x86_64-unknown-linux-gnu -o ./quoddel_${{ needs.quickcheck.outputs.version }}_amd64.deb
           
       - name: Release deb
         uses: softprops/action-gh-release@v1
