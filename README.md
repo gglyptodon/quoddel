@@ -11,7 +11,7 @@ Output is printed to stdout.
 ```
 ./quoddel -h
 quoddel 
-Shows some stats for fasta files. Default minimum contig length is 500bp.
+Shows some stats for nucleotide fasta files, e.g. genome assemblies.
 
 USAGE:
     quoddel [OPTIONS] [files]...
@@ -27,8 +27,9 @@ OPTIONS:
             Print help information
 
     -m, --min-contig <min_contig_length>
-            minimum contig length to be considered for some stats (to be compatible w quast output)
-            [default: 500]
+            minimum contig length to be considered for some stats (to be compatible with QUAST
+            output) [default: 500]
+
 ```
 
 ## Example
@@ -36,7 +37,7 @@ OPTIONS:
 Use gunzip to pipe gzipped fasta to quoddel:
 
 ```
-gunzip -kc LargeAssembly.fna.gz | ./quoddel-v0.1.0 > LargeAssembly.tsv
+gunzip -kc LargeAssembly.fna.gz | quoddel > LargeAssembly.tsv
 ```
 
 LargeAssembly.tsv:
@@ -65,5 +66,4 @@ N90     863342500
 L50     11
 L90     22
 num N's per 100 kbp     2479.399
-```
 ```

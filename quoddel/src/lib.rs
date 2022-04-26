@@ -19,7 +19,7 @@ pub struct Config {
 
 pub fn get_args() -> QuoddelResult<Config> {
     let matches = Command::new("quoddel")
-        .about("Shows some stats for fasta files. Default minimum contig length is 500bp.")
+        .about("Shows some stats for nucleotide fasta files, e.g. genome assemblies.")
         .arg(
             Arg::new("files")
                 .allow_invalid_utf8(true)
@@ -29,7 +29,7 @@ pub fn get_args() -> QuoddelResult<Config> {
         ).arg(
         Arg::new("min_contig_length").short('m')
             .long("min-contig")
-            .help("minimum contig length to be considered for some stats (to be compatible w quast output)")
+            .help("minimum contig length to be considered for some stats (to be compatible with QUAST output)")
             .default_value("500")
     ).arg(Arg::new("debug").long("--debug").takes_value(false).help("print debug output to stdout"))
         .get_matches();

@@ -165,7 +165,7 @@ pub fn calc_gc(file: &str, length_cutoff: usize) -> QuoddelResult<f32> {
 mod tests {
     use crate::{
         calc::{n50, n90},
-        get_at_num, get_atgcn_num, get_gc_num, FastaInfo, NucCount,
+        get_at_num, get_atgcn_num, get_gc_num, NucCount,
     };
 
     #[test]

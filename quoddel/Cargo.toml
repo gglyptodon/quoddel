@@ -1,7 +1,10 @@
 [package]
 name = "quoddel"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
+license = "MIT"
+description = "Shows some stats for nucleotide fasta files, e.g. genome assemblies."
+authors = ["Janina Mass <janina.mass@gmail.com>"]
 
 [dependencies]
 clap = "3"
