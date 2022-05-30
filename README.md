@@ -1,5 +1,6 @@
 # quoddel
 [![Rust](https://github.com/gglyptodon/quoddel/actions/workflows/rust.yml/badge.svg)](https://github.com/gglyptodon/quoddel/actions/workflows/rust.yml)
+[![Lint Code Base](https://github.com/gglyptodon/quoddel/actions/workflows/linter.yml/badge.svg)](https://github.com/gglyptodon/quoddel/actions/workflows/linter.yml)
 
 Display stats about fasta files.
 Output is printed to stdout.
