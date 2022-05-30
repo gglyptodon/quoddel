@@ -1,6 +1,5 @@
-[![Rust](https://github.com/gglyptodon/quoddel/actions/workflows/rust.yml/badge.svg)](https://github.com/gglyptodon/quoddel/actions/workflows/rust.yml)
-
 # quoddel
+[![Rust](https://github.com/gglyptodon/quoddel/actions/workflows/rust.yml/badge.svg)](https://github.com/gglyptodon/quoddel/actions/workflows/rust.yml)
 
 Display stats about fasta files.
 Output is printed to stdout.
@@ -8,7 +7,7 @@ Output is printed to stdout.
 
 ## Usage
 
-```
+```text
 ./quoddel -h
 quoddel 
 Shows some stats for nucleotide fasta files, e.g. genome assemblies.
@@ -36,13 +35,13 @@ OPTIONS:
 
 Use gunzip to pipe gzipped fasta to quoddel:
 
-```
+```text
 gunzip -kc LargeAssembly.fna.gz | quoddel > LargeAssembly.tsv
 ```
 
 LargeAssembly.tsv:
 
-```
+```text
 Assembly        STDIN
 num contigs (>= 0 bp)   12668
 num contigs (>= 1000 bp)        12668
