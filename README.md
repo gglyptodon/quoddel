@@ -2,9 +2,25 @@
 [![Rust](https://github.com/gglyptodon/quoddel/actions/workflows/rust.yml/badge.svg)](https://github.com/gglyptodon/quoddel/actions/workflows/rust.yml)
 [![Lint Code Base](https://github.com/gglyptodon/quoddel/actions/workflows/linter.yml/badge.svg)](https://github.com/gglyptodon/quoddel/actions/workflows/linter.yml)
 
-Display stats about fasta files.
-Output is printed to stdout.
+Display key quality metrics about genome assemblies.
 
+Input: 
+- Fasta file with contigs. (Can also be read from stdin, e.g. for on-the-fly decompression)
+
+Output: 
+- Table of metrics (same output format as QUAST's output for this subset of metrics; tab-separated; printed to stdout).
+
+## Build / Install
+Pre-built binaries for Linux and MacOS can be found here: https://github.com/gglyptodon/quoddel/releases
+
+To build yourself:
+```
+# install rust as described here: https://www.rust-lang.org/tools/install
+git clone git@github.com:gglyptodon/quoddel.git
+cd quoddel
+cargo build --release
+# then run the binary from the quoddel/target/release directory or copy to a directory in your PATH
+```
 
 ## Usage
 
